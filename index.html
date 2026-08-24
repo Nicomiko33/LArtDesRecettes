@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#fffaf6" />
-  <meta name="app-version" content="3.2" />
+  <meta name="app-version" content="3.3" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="L’Art des Recettes" />
-  <title>L’Art des Recettes · V3.2</title>
+  <title>L’Art des Recettes · V3.3</title>
 <style>
 :root{
   --bg:#fffaf6;--panel:#fff;--ink:#2c2927;--muted:#7c746f;--rose:#efd8d2;--rose2:#c67b73;
@@ -92,6 +92,16 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
 .ingredient-results-title{display:flex;justify-content:space-between;align-items:end;gap:10px;margin:17px 0 9px}.ingredient-results-title h3{margin:0}.match-badge{display:inline-flex;margin-top:6px;padding:4px 7px;border-radius:999px;background:#eef6eb;color:var(--green3);font-size:10px;font-weight:850}.match-badge.partial{background:#f7f0df;color:#756331}
 .ingredient-empty{padding:18px;text-align:center;background:#faf7f5;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:13px}
 
+
+.pantry-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pantry-tools button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;color:var(--muted)}
+.pantry-tools button.active{background:var(--green);color:var(--green3);border-color:#bfd7b8}
+.pantry-summary{margin:13px 0 8px;padding:11px 12px;border-radius:14px;background:#faf7f4;border:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.45}
+.missing-list{margin-top:7px;font-size:11px;color:#8a5c4c;line-height:1.35}
+.ready-badge{display:inline-flex;margin-top:6px;padding:4px 7px;border-radius:999px;background:#e7f5e4;color:#376b31;font-size:10px;font-weight:900}
+.missing-badge{display:inline-flex;margin-top:6px;padding:4px 7px;border-radius:999px;background:#fff0e5;color:#8a5b2e;font-size:10px;font-weight:900}
+.pantry-section-title{margin:17px 0 8px;font-size:14px}
+
 @media (min-width:650px){.category-grid{grid-template-columns:repeat(4,1fr)}.stats-grid{grid-template-columns:repeat(4,1fr)}.backup-actions{grid-template-columns:1fr 1fr}}
 @media (max-width:390px){.form-grid{grid-template-columns:1fr}.ingredients li{grid-template-columns:92px 1fr}.ing-cost{grid-column:2}.photo-preview-grid{grid-template-columns:repeat(2,1fr)}}
 @media print{
@@ -125,6 +135,11 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
       <button type="button" data-ingredient-mode="strict">Uniquement tous</button>
       <button type="button" data-ingredient-mode="any">Au moins un</button>
     </div>
+    <div class="pantry-tools">
+      <button id="pantryModeBtn" type="button">🧺 Mode fond de frigo</button>
+      <button id="oneMissingBtn" type="button">➕ Il me manque 1 ingrédient</button>
+    </div>
+    <div id="pantrySummary" class="pantry-summary" style="display:none"></div>
     <div id="ingredientResults"></div>
   </section>
 
@@ -156,7 +171,7 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
     <div class="backup-actions"><button id="exportBackupBtn" class="primary-btn">⬇︎ Créer une sauvegarde</button><button id="importBackupBtn" class="secondary-btn">⬆︎ Restaurer une sauvegarde</button><input id="backupFileInput" type="file" accept=".json,application/json" hidden></div>
     <p id="backupStatus" class="backup-status"></p>
   </section>
-  <div class="version">L’Art des Recettes · V3.2</div>
+  <div class="version">L’Art des Recettes · V3.3</div>
 </section>
 
 <section id="recipeView" class="view"><button id="backBtn" class="back-btn">‹ Retour</button><article id="recipeDetail"></article></section>
@@ -253,7 +268,7 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
 </div>
 
 <script>
-const APP_VERSION="3.2";
+const APP_VERSION="3.3";
 const categories=[["Viandes","🥩"],["Poissons","🐟"],["Entrées","🥗"],["Accompagnements","🥕"],["Desserts","🍰"],["Sauces","🥣"],["Seniors","👴"],["Collectivité","🏫"],["Personnel","⭐"]];
 const categoryEmoji=Object.fromEntries(categories);
 const qs=s=>document.querySelector(s),qsa=s=>[...document.querySelectorAll(s)];
@@ -276,6 +291,8 @@ let purchased=JSON.parse(localStorage.getItem("lar-purchased")||"{}");
 let wakeLock=null;
 let ingredientQueries=[];
 let ingredientMode="all";
+let pantryMode=false;
+let oneMissingOnly=false;
 let activeCategory=null,currentRecipeId=null,currentServings=null,editingId=null,pendingPhotos=[],removeExistingPhotos=false,currentPhotoIndex=0;
 const photoCache=new Map();
 
@@ -331,27 +348,93 @@ function removeIngredientQuery(index){
   ingredientQueries.splice(index,1);
   renderIngredientSearch();
 }
-function ingredientRecipeCard(r,matched,total){
+function ingredientRecipeCard(r,matched,total,missingTerms=[]){
   const fav=favorites.includes(r.id),pin=pinned.includes(r.id);
   const tags=(r.tags||[]).slice(0,1).map(t=>`<span class="tag-mini">${escapeHtml(t)}</span>`).join("");
   const full=matched===total;
+  const missingText=missingTerms.length?`<div class="missing-list"><strong>Manque :</strong> ${missingTerms.map(escapeHtml).join(", ")}</div>`:"";
+  const status = missingTerms.length===0
+    ? `<span class="ready-badge">✓ Faisable maintenant</span>`
+    : `<span class="missing-badge">Il manque ${missingTerms.length} ingrédient${missingTerms.length>1?"s":""}</span>`;
   return `<div class="recipe-card">
     <div class="recipe-thumb" data-thumb="${r.id}">${r.icon}</div>
     <div class="recipe-meta">
       <h4>${escapeHtml(r.title)}</h4>
       <p>${escapeHtml(r.category)} · Base ${r.servings}</p>
-      <span class="match-badge ${full?"":"partial"}">${matched}/${total} ingrédient${total>1?"s":""}</span>
+      ${pantryMode ? status : `<span class="match-badge ${full?"":"partial"}">${matched}/${total} ingrédient${total>1?"s":""}</span>`}
+      ${missingText}
       ${tags?`<div class="tags-mini">${tags}</div>`:""}
     </div>
     <div><button class="pin-btn ${pin?"active":""}" data-pin="${r.id}">📌</button><button class="fav-btn" data-fav="${r.id}">${fav?"♥":"♡"}</button><button class="open-btn" data-open="${r.id}">›</button></div>
   </div>`;
 }
+function getRecipeIngredientNames(recipe){
+  return recipe.ingredients.map(i=>normalizeSearchText(i.name)).filter(Boolean);
+}
+function pantryMissingTerms(recipe){
+  const pantry=ingredientQueries.map(normalizeSearchText).filter(Boolean);
+  if(!pantry.length)return [];
+  const recipeIngredients=getRecipeIngredientNames(recipe);
+  const missing=[];
+  for(const ing of recipeIngredients){
+    const matched=pantry.some(p=>ingredientVariants(p).some(v=>ing.includes(v)||v.includes(ing)));
+    if(!matched) missing.push(ing);
+  }
+  return [...new Set(missing)];
+}
 function renderIngredientSearch(){
   qs("#ingredientChips").innerHTML=ingredientQueries.map((q,i)=>`<span class="ingredient-chip">${escapeHtml(q)} <button type="button" data-remove-ing="${i}">×</button></span>`).join("");
   qsa("[data-remove-ing]").forEach(b=>b.onclick=()=>removeIngredientQuery(Number(b.dataset.removeIng)));
   qsa("[data-ingredient-mode]").forEach(b=>b.classList.toggle("active",b.dataset.ingredientMode===ingredientMode));
+  qs("#pantryModeBtn").classList.toggle("active",pantryMode);
+  qs("#oneMissingBtn").classList.toggle("active",oneMissingOnly);
+
   const result=qs("#ingredientResults");
-  if(!ingredientQueries.length){result.innerHTML='<div class="ingredient-empty">Ajoutez 1 ou plusieurs ingrédients pour voir les recettes correspondantes.</div>';return;}
+  const summary=qs("#pantrySummary");
+
+  if(!ingredientQueries.length){
+    summary.style.display="none";
+    result.innerHTML='<div class="ingredient-empty">Ajoutez 1 ou plusieurs ingrédients pour voir les recettes correspondantes.</div>';
+    return;
+  }
+
+  if(pantryMode){
+    const scored=recipes.map(r=>{
+      const matchedTerms=ingredientQueries.filter(q=>ingredientMatchesTerm(r,q));
+      const missing=pantryMissingTerms(r);
+      return {r,matched:matchedTerms.length,total:ingredientQueries.length,missing};
+    }).filter(x=>{
+      if(oneMissingOnly) return x.missing.length===1;
+      return true;
+    }).sort((a,b)=>{
+      return a.missing.length-b.missing.length || b.matched-a.matched || a.r.title.localeCompare(b.r.title,"fr");
+    });
+
+    const ready=scored.filter(x=>x.missing.length===0).length;
+    const one=scored.filter(x=>x.missing.length===1).length;
+    summary.style.display="block";
+    summary.innerHTML=`Avec ce que vous avez indiqué : <strong>${ready}</strong> recette${ready>1?"s":""} faisable${ready>1?"s":""} immédiatement et <strong>${one}</strong> où il ne manque qu’un ingrédient.`;
+
+    if(!scored.length){
+      result.innerHTML='<div class="ingredient-empty">Aucune recette ne correspond à ce filtre.</div>';
+      return;
+    }
+
+    const groups=[];
+    const readyItems=scored.filter(x=>x.missing.length===0);
+    const oneItems=scored.filter(x=>x.missing.length===1);
+    const moreItems=scored.filter(x=>x.missing.length>=2);
+
+    if(readyItems.length) groups.push(`<h4 class="pantry-section-title">✓ Faisables maintenant</h4><div class="recipe-list ${compactView?"compact":""}">${readyItems.map(x=>ingredientRecipeCard(x.r,x.matched,x.total,x.missing)).join("")}</div>`);
+    if(oneItems.length) groups.push(`<h4 class="pantry-section-title">➕ Il manque 1 ingrédient</h4><div class="recipe-list ${compactView?"compact":""}">${oneItems.map(x=>ingredientRecipeCard(x.r,x.matched,x.total,x.missing)).join("")}</div>`);
+    if(moreItems.length && !oneMissingOnly) groups.push(`<h4 class="pantry-section-title">Autres possibilités</h4><div class="recipe-list ${compactView?"compact":""}">${moreItems.map(x=>ingredientRecipeCard(x.r,x.matched,x.total,x.missing)).join("")}</div>`);
+
+    result.innerHTML=groups.join("");
+    result.querySelectorAll(".recipe-list").forEach(wireCards);
+    return;
+  }
+
+  summary.style.display="none";
   const scored=recipes.map(r=>{
     const matchedTerms=ingredientQueries.filter(q=>ingredientMatchesTerm(r,q));
     return {r,matched:matchedTerms.length,total:ingredientQueries.length,terms:matchedTerms};
@@ -367,7 +450,7 @@ function renderIngredientSearch(){
     ? `${scored.length} recette${scored.length>1?"s":""} avec tous les ingrédients`
     : exact?`${exact} correspondance${exact>1?"s":""} complète${exact>1?"s":""}`:`${scored.length} recette${scored.length>1?"s":""} partielle${scored.length>1?"s":""}`;
   result.innerHTML=`<div class="ingredient-results-title"><h3>Recettes proposées</h3><span class="muted">${label}</span></div>`+
-    (scored.length?`<div id="ingredientRecipeList" class="recipe-list ${compactView?"compact":""}">${scored.map(x=>ingredientRecipeCard(x.r,x.matched,x.total)).join("")}</div>`:
+    (scored.length?`<div id="ingredientRecipeList" class="recipe-list ${compactView?"compact":""}">${scored.map(x=>ingredientRecipeCard(x.r,x.matched,x.total,[])).join("")}</div>`:
     '<div class="ingredient-empty">Aucune recette ne correspond à ce choix. Essayez le mode « Au moins un » ou retirez un ingrédient.</div>');
   const list=qs("#ingredientRecipeList");if(list)wireCards(list);
 }
@@ -377,7 +460,9 @@ qs("#ingredientSearchLaunch").onclick=()=>{
 };
 qs("#addIngredientsBtn").onclick=addIngredientQueriesFromInput;
 qs("#ingredientSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addIngredientQueriesFromInput();}});
-qsa("[data-ingredient-mode]").forEach(b=>b.onclick=()=>{ingredientMode=b.dataset.ingredientMode;renderIngredientSearch();});
+qsa("[data-ingredient-mode]").forEach(b=>b.onclick=()=>{ingredientMode=b.dataset.ingredientMode;pantryMode=false;oneMissingOnly=false;renderIngredientSearch();});
+qs("#pantryModeBtn").onclick=()=>{pantryMode=!pantryMode;if(!pantryMode)oneMissingOnly=false;renderIngredientSearch();};
+qs("#oneMissingBtn").onclick=()=>{oneMissingOnly=!oneMissingOnly;pantryMode=oneMissingOnly?true:pantryMode;renderIngredientSearch();};
 
 function renderCategories(){const grid=qs("#categoryGrid");grid.innerHTML="";categories.forEach(([name,emoji])=>{const count=recipes.filter(r=>r.category===name).length;const btn=document.createElement("button");btn.className="category-card";btn.innerHTML=`<span class="emoji">${emoji}</span><strong>${name}</strong><small>${count} recette${count>1?"s":""}</small>`;btn.onclick=()=>{activeCategory=name;qs("#searchInput").value="";renderRecipes();};grid.appendChild(btn);});}
 function filteredRecipes(){const term=qs("#searchInput").value.trim().toLowerCase();return recipes.filter(r=>{const cat=!activeCategory||r.category===activeCategory;const hay=[r.title,r.category,r.notes,r.cooking,r.coreTemp,r.holding,...r.tags,...r.equipment,...r.ingredients.map(i=>i.name)].join(" ").toLowerCase();return cat&&(!term||hay.includes(term));});}
