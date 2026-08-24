@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#fffaf6" />
-  <meta name="app-version" content="3.1" />
+  <meta name="app-version" content="3.2" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="L’Art des Recettes" />
-  <title>L’Art des Recettes · V3.1</title>
+  <title>L’Art des Recettes · V3.2</title>
 <style>
 :root{
   --bg:#fffaf6;--panel:#fff;--ink:#2c2927;--muted:#7c746f;--rose:#efd8d2;--rose2:#c67b73;
@@ -82,6 +82,16 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
 .field-title{display:flex;justify-content:space-between;align-items:center;gap:8px}.dictate-btn{border:0;background:#f2eeeb;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;color:#655d59}
 .shop-check-line{display:grid!important;grid-template-columns:27px 105px 1fr!important;gap:8px!important;align-items:center}.shop-check-line input{width:20px;height:20px;accent-color:var(--green2)}.shop-check-line.done strong,.shop-check-line.done span{text-decoration:line-through;opacity:.45}
 
+
+.ingredient-search-launch{margin:10px 0 4px;width:100%;border:1px solid #cfe0c9;background:#f2f8f0;color:var(--green3);border-radius:15px;padding:12px 14px;font-weight:850;text-align:left}
+.ingredient-search-panel{display:none;margin:11px 0 18px;background:#fff;border:1px solid var(--line);border-radius:19px;padding:15px;box-shadow:0 6px 18px rgba(71,53,45,.05)}
+.ingredient-search-panel.show{display:block}.ingredient-search-panel h3{margin:0 0 5px}.ingredient-search-panel p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.4}
+.ingredient-entry{display:grid;grid-template-columns:1fr auto;gap:8px}.ingredient-entry input{border:1px solid var(--line);border-radius:13px;padding:11px;outline:none;min-width:0}.ingredient-entry button{border:0;border-radius:13px;padding:10px 13px;background:var(--green2);color:#fff;font-weight:850}
+.ingredient-chips{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}.ingredient-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border-radius:999px;background:var(--green);color:var(--green3);font-size:12px;font-weight:800}.ingredient-chip button{border:0;background:none;color:inherit;padding:0;font-size:16px}
+.ingredient-options{display:flex;gap:8px;flex-wrap:wrap;margin:9px 0 11px}.ingredient-options button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;color:var(--muted)}.ingredient-options button.active{background:var(--green);color:var(--green3);border-color:#c2d9bc}
+.ingredient-results-title{display:flex;justify-content:space-between;align-items:end;gap:10px;margin:17px 0 9px}.ingredient-results-title h3{margin:0}.match-badge{display:inline-flex;margin-top:6px;padding:4px 7px;border-radius:999px;background:#eef6eb;color:var(--green3);font-size:10px;font-weight:850}.match-badge.partial{background:#f7f0df;color:#756331}
+.ingredient-empty{padding:18px;text-align:center;background:#faf7f5;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:13px}
+
 @media (min-width:650px){.category-grid{grid-template-columns:repeat(4,1fr)}.stats-grid{grid-template-columns:repeat(4,1fr)}.backup-actions{grid-template-columns:1fr 1fr}}
 @media (max-width:390px){.form-grid{grid-template-columns:1fr}.ingredients li{grid-template-columns:92px 1fr}.ing-cost{grid-column:2}.photo-preview-grid{grid-template-columns:repeat(2,1fr)}}
 @media print{
@@ -100,6 +110,24 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
 <main>
 <section id="homeView" class="view active">
   <div class="search-wrap"><span>⌕</span><input id="searchInput" type="search" placeholder="Recette, ingrédient, tag, matériel…" /></div>
+
+  <button id="ingredientSearchLaunch" class="ingredient-search-launch">🥕 J’ai des ingrédients… trouver une recette</button>
+  <section id="ingredientSearchPanel" class="ingredient-search-panel">
+    <h3>Que reste-t-il dans votre cuisine ?</h3>
+    <p>Ajoutez plusieurs ingrédients. Exemple : <strong>poulet, riz, crème</strong>.</p>
+    <div class="ingredient-entry">
+      <input id="ingredientSearchInput" placeholder="Poulet, riz, crème…" autocomplete="off">
+      <button id="addIngredientsBtn" type="button">Ajouter</button>
+    </div>
+    <div id="ingredientChips" class="ingredient-chips"></div>
+    <div class="ingredient-options">
+      <button type="button" data-ingredient-mode="all" class="active">Tous en priorité</button>
+      <button type="button" data-ingredient-mode="strict">Uniquement tous</button>
+      <button type="button" data-ingredient-mode="any">Au moins un</button>
+    </div>
+    <div id="ingredientResults"></div>
+  </section>
+
   <section class="hero-card"><div><p class="eyebrow">À PORTÉE DE MAIN</p><h2>Votre livre de cuisine, du quotidien à la production.</h2><p>Quantités, coûts, organisation et fiches techniques dans le même outil.</p></div><div class="hero-mark">👨‍🍳</div></section>
   <div class="mode-switch"><button data-mode="simple">Mode simple</button><button data-mode="pro">Mode professionnel</button></div>
 
@@ -128,7 +156,7 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
     <div class="backup-actions"><button id="exportBackupBtn" class="primary-btn">⬇︎ Créer une sauvegarde</button><button id="importBackupBtn" class="secondary-btn">⬆︎ Restaurer une sauvegarde</button><input id="backupFileInput" type="file" accept=".json,application/json" hidden></div>
     <p id="backupStatus" class="backup-status"></p>
   </section>
-  <div class="version">L’Art des Recettes · V3.1</div>
+  <div class="version">L’Art des Recettes · V3.2</div>
 </section>
 
 <section id="recipeView" class="view"><button id="backBtn" class="back-btn">‹ Retour</button><article id="recipeDetail"></article></section>
@@ -225,7 +253,7 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
 </div>
 
 <script>
-const APP_VERSION="3.1";
+const APP_VERSION="3.2";
 const categories=[["Viandes","🥩"],["Poissons","🐟"],["Entrées","🥗"],["Accompagnements","🥕"],["Desserts","🍰"],["Sauces","🥣"],["Seniors","👴"],["Collectivité","🏫"],["Personnel","⭐"]];
 const categoryEmoji=Object.fromEntries(categories);
 const qs=s=>document.querySelector(s),qsa=s=>[...document.querySelectorAll(s)];
@@ -246,6 +274,8 @@ let checkStates=JSON.parse(localStorage.getItem("lar-checks")||"{}");
 let shoppingCart=JSON.parse(localStorage.getItem("lar-shopping-cart")||"{}");
 let purchased=JSON.parse(localStorage.getItem("lar-purchased")||"{}");
 let wakeLock=null;
+let ingredientQueries=[];
+let ingredientMode="all";
 let activeCategory=null,currentRecipeId=null,currentServings=null,editingId=null,pendingPhotos=[],removeExistingPhotos=false,currentPhotoIndex=0;
 const photoCache=new Map();
 
@@ -266,6 +296,88 @@ async function deletePhotos(id){try{const db=await openPhotoDB();await new Promi
 
 function renderMode(){qsa("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===appMode));}
 qsa("[data-mode]").forEach(b=>b.onclick=()=>{appMode=b.dataset.mode;save();renderMode();if(currentRecipeId)renderRecipeDetail();});
+
+
+function normalizeSearchText(s){
+  return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[’']/g," ").replace(/[^a-z0-9]+/g," ").trim();
+}
+function ingredientVariants(term){
+  const t=normalizeSearchText(term);
+  const set=new Set([t]);
+  if(t.endsWith("s")&&t.length>3)set.add(t.slice(0,-1));
+  else if(t.length>3)set.add(t+"s");
+  if(t.endsWith("x")&&t.length>3)set.add(t.slice(0,-1));
+  return [...set].filter(Boolean);
+}
+function ingredientMatchesTerm(recipe,term){
+  const variants=ingredientVariants(term);
+  const ingredientText=recipe.ingredients.map(i=>normalizeSearchText(i.name)).join(" | ");
+  return variants.some(v=>ingredientText.includes(v));
+}
+function addIngredientQueriesFromInput(){
+  const input=qs("#ingredientSearchInput");
+  const raw=input.value.trim();
+  if(!raw)return;
+  const parts=raw.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);
+  parts.forEach(p=>{
+    const n=normalizeSearchText(p);
+    if(n&&!ingredientQueries.some(x=>normalizeSearchText(x)===n))ingredientQueries.push(p);
+  });
+  input.value="";
+  renderIngredientSearch();
+}
+function removeIngredientQuery(index){
+  ingredientQueries.splice(index,1);
+  renderIngredientSearch();
+}
+function ingredientRecipeCard(r,matched,total){
+  const fav=favorites.includes(r.id),pin=pinned.includes(r.id);
+  const tags=(r.tags||[]).slice(0,1).map(t=>`<span class="tag-mini">${escapeHtml(t)}</span>`).join("");
+  const full=matched===total;
+  return `<div class="recipe-card">
+    <div class="recipe-thumb" data-thumb="${r.id}">${r.icon}</div>
+    <div class="recipe-meta">
+      <h4>${escapeHtml(r.title)}</h4>
+      <p>${escapeHtml(r.category)} · Base ${r.servings}</p>
+      <span class="match-badge ${full?"":"partial"}">${matched}/${total} ingrédient${total>1?"s":""}</span>
+      ${tags?`<div class="tags-mini">${tags}</div>`:""}
+    </div>
+    <div><button class="pin-btn ${pin?"active":""}" data-pin="${r.id}">📌</button><button class="fav-btn" data-fav="${r.id}">${fav?"♥":"♡"}</button><button class="open-btn" data-open="${r.id}">›</button></div>
+  </div>`;
+}
+function renderIngredientSearch(){
+  qs("#ingredientChips").innerHTML=ingredientQueries.map((q,i)=>`<span class="ingredient-chip">${escapeHtml(q)} <button type="button" data-remove-ing="${i}">×</button></span>`).join("");
+  qsa("[data-remove-ing]").forEach(b=>b.onclick=()=>removeIngredientQuery(Number(b.dataset.removeIng)));
+  qsa("[data-ingredient-mode]").forEach(b=>b.classList.toggle("active",b.dataset.ingredientMode===ingredientMode));
+  const result=qs("#ingredientResults");
+  if(!ingredientQueries.length){result.innerHTML='<div class="ingredient-empty">Ajoutez 1 ou plusieurs ingrédients pour voir les recettes correspondantes.</div>';return;}
+  const scored=recipes.map(r=>{
+    const matchedTerms=ingredientQueries.filter(q=>ingredientMatchesTerm(r,q));
+    return {r,matched:matchedTerms.length,total:ingredientQueries.length,terms:matchedTerms};
+  }).filter(x=>{
+    if(ingredientMode==="strict")return x.matched===x.total;
+    return x.matched>0;
+  }).sort((a,b)=>{
+    const af=a.matched===a.total?1:0,bf=b.matched===b.total?1:0;
+    return bf-af || b.matched-a.matched || a.r.title.localeCompare(b.r.title,"fr");
+  });
+  const exact=scored.filter(x=>x.matched===x.total).length;
+  const label=ingredientMode==="strict"
+    ? `${scored.length} recette${scored.length>1?"s":""} avec tous les ingrédients`
+    : exact?`${exact} correspondance${exact>1?"s":""} complète${exact>1?"s":""}`:`${scored.length} recette${scored.length>1?"s":""} partielle${scored.length>1?"s":""}`;
+  result.innerHTML=`<div class="ingredient-results-title"><h3>Recettes proposées</h3><span class="muted">${label}</span></div>`+
+    (scored.length?`<div id="ingredientRecipeList" class="recipe-list ${compactView?"compact":""}">${scored.map(x=>ingredientRecipeCard(x.r,x.matched,x.total)).join("")}</div>`:
+    '<div class="ingredient-empty">Aucune recette ne correspond à ce choix. Essayez le mode « Au moins un » ou retirez un ingrédient.</div>');
+  const list=qs("#ingredientRecipeList");if(list)wireCards(list);
+}
+qs("#ingredientSearchLaunch").onclick=()=>{
+  const p=qs("#ingredientSearchPanel");p.classList.toggle("show");
+  if(p.classList.contains("show")){renderIngredientSearch();setTimeout(()=>qs("#ingredientSearchInput").focus(),100);}
+};
+qs("#addIngredientsBtn").onclick=addIngredientQueriesFromInput;
+qs("#ingredientSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addIngredientQueriesFromInput();}});
+qsa("[data-ingredient-mode]").forEach(b=>b.onclick=()=>{ingredientMode=b.dataset.ingredientMode;renderIngredientSearch();});
 
 function renderCategories(){const grid=qs("#categoryGrid");grid.innerHTML="";categories.forEach(([name,emoji])=>{const count=recipes.filter(r=>r.category===name).length;const btn=document.createElement("button");btn.className="category-card";btn.innerHTML=`<span class="emoji">${emoji}</span><strong>${name}</strong><small>${count} recette${count>1?"s":""}</small>`;btn.onclick=()=>{activeCategory=name;qs("#searchInput").value="";renderRecipes();};grid.appendChild(btn);});}
 function filteredRecipes(){const term=qs("#searchInput").value.trim().toLowerCase();return recipes.filter(r=>{const cat=!activeCategory||r.category===activeCategory;const hay=[r.title,r.category,r.notes,r.cooking,r.coreTemp,r.holding,...r.tags,...r.equipment,...r.ingredients.map(i=>i.name)].join(" ").toLowerCase();return cat&&(!term||hay.includes(term));});}
@@ -375,7 +487,7 @@ async function checkForUpdate(){try{const url=location.pathname+"?versioncheck="
 let scrollTimer=null;window.addEventListener("scroll",()=>{if(!currentRecipeId||!qs("#recipeView").classList.contains("active"))return;clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>localStorage.setItem("lar-scroll-"+currentRecipeId,String(window.scrollY)),120);},{passive:true});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&qs("#kitchenOverlay"))requestWakeLock();});
 
-function renderAll(){renderMode();renderCategories();renderRecipes();renderFavorites();renderPinned();renderMenus();renderShopping();showBackupStatus();fillMenuOptions();qs("#compactToggle").textContent=compactView?"▤ Vue normale":"▦ Vue compacte";}
+function renderAll(){renderMode();renderCategories();renderRecipes();renderFavorites();renderPinned();renderMenus();renderShopping();showBackupStatus();fillMenuOptions();qs("#compactToggle").textContent=compactView?"▤ Vue normale":"▦ Vue compacte";if(qs("#ingredientSearchPanel")?.classList.contains("show"))renderIngredientSearch();}
 qs("#searchInput").addEventListener("input",()=>{activeCategory=null;renderRecipes();});qs("#showAllBtn").onclick=()=>{activeCategory=null;qs("#searchInput").value="";renderRecipes();};qs("#addRecipeBtn").onclick=()=>openForm();qs("#backBtn").onclick=()=>setView("home");qs("#backFromAddBtn").onclick=()=>{resetForm();setView("home");};
 qsa(".nav-btn").forEach(btn=>btn.onclick=()=>{const n=btn.dataset.nav;if(n==="home")setView("home");if(n==="favorites"){renderFavorites();setView("favorites");}if(n==="menus"){renderMenus();setView("menus");}if(n==="shopping"){renderShopping();setView("shopping");}if(n==="add")openForm();});
 renderAll();checkForUpdate();
