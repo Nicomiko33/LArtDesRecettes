@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#fffaf6" />
-  <meta name="app-version" content="3.4" />
+  <meta name="app-version" content="3.4.1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="L’Art des Recettes" />
-  <title>L’Art des Recettes · V3.4</title>
+  <title>L’Art des Recettes · V3.4.1</title>
 <style>
 :root{
   --bg:#fffaf6;--panel:#fff;--ink:#2c2927;--muted:#7c746f;--rose:#efd8d2;--rose2:#c67b73;
@@ -182,7 +182,7 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
     <div class="backup-actions"><button id="exportBackupBtn" class="primary-btn">⬇︎ Créer une sauvegarde</button><button id="importBackupBtn" class="secondary-btn">⬆︎ Restaurer une sauvegarde</button><button id="resetAiTokenBtn" class="mini-btn" type="button">🔐 Réinitialiser l’accès IA</button><input id="backupFileInput" type="file" accept=".json,application/json" hidden></div>
     <p id="backupStatus" class="backup-status"></p>
   </section>
-  <div class="version">L’Art des Recettes · V3.4</div>
+  <div class="version">L’Art des Recettes · V3.4.1</div>
 </section>
 
 <section id="recipeView" class="view"><button id="backBtn" class="back-btn">‹ Retour</button><article id="recipeDetail"></article></section>
@@ -293,7 +293,7 @@ main{padding:17px 16px 0}.view{display:none}.view.active{display:block}
 </div>
 
 <script>
-const APP_VERSION="3.4";
+const APP_VERSION="3.4.1";
 const AI_WORKER_URL="https://lartdesrecettes-ai.ckless01.workers.dev";
 const categories=[["Viandes","🥩"],["Poissons","🐟"],["Entrées","🥗"],["Accompagnements","🥕"],["Desserts","🍰"],["Sauces","🥣"],["Seniors","👴"],["Collectivité","🏫"],["Personnel","⭐"]];
 const categoryEmoji=Object.fromEntries(categories);
@@ -580,7 +580,7 @@ qs("#removePhotosBtn").onclick=()=>{pendingPhotos=[];removeExistingPhotos=true;q
 qs("#aiRecipeImage").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{setAiStatus("Préparation de l’image…");aiImageData=await prepareAiImage(file);qs("#aiImagePreview").src=aiImageData;qs("#aiImagePreview").classList.add("show");qs("#aiAnalyzeBtn").disabled=false;setAiStatus("Image prête. Appuyez sur « Analyser la recette ». ");}catch(e){setAiStatus("Impossible de lire cette image.","error");}});
 qs("#aiAnalyzeBtn").onclick=analyzeRecipeWithAi;
 qs("#aiFillFormBtn").onclick=()=>{if(aiRecipeResult)fillFormFromAi(aiRecipeResult);};
-qs("#aiSaveTokenBtn").onclick=()=>{const t=qs("#aiTokenInput").value.trim();if(!t){setAiStatus("Saisissez votre APP_TOKEN.","error");return;}localStorage.setItem("lar-ai-token",t);qs("#aiTokenInput").value="";showAiTokenPanel(false);setAiStatus("Phrase secrète enregistrée sur cet iPhone. Vous pouvez lancer l’analyse.","ok");};
+qs("#aiSaveTokenBtn").onclick=()=>{const t=qs("#aiTokenInput").value;if(!t){setAiStatus("Saisissez votre APP_TOKEN.","error");return;}localStorage.setItem("lar-ai-token",t);qs("#aiTokenInput").value="";showAiTokenPanel(false);setAiStatus("Phrase secrète enregistrée sur cet iPhone. Vous pouvez lancer l’analyse.","ok");};
 qs("#aiCancelTokenBtn").onclick=()=>{qs("#aiTokenInput").value="";showAiTokenPanel(false);};
 
 qs("#recipeForm").addEventListener("submit",async e=>{e.preventDefault();const title=qs("#formTitle").value.trim(),category=qs("#formCategory").value,existing=editingId?recipes.find(x=>x.id===editingId):null,id=editingId||slugify(title);const recipe={id,title,category,servings:Number(qs("#formServings").value)||1,icon:existing?.icon||categoryEmoji[category]||"🍽️",yieldQty:Number(qs("#formYieldQty").value)||0,yieldUnit:qs("#formYieldUnit").value,tags:qs("#formTags").value.split(",").map(x=>x.trim()).filter(Boolean),prep:qs("#formPrep").value.trim(),cookTime:qs("#formCookTime").value.trim(),cooking:qs("#formCooking").value.trim(),coreTemp:qs("#formCoreTemp").value.trim(),holding:qs("#formHolding").value.trim(),equipment:qs("#formEquipment").value.split("\n").map(x=>x.trim()).filter(Boolean),ingredients:parseIngredients(qs("#formIngredients").value),steps:qs("#formSteps").value.split("\n").map(x=>x.trim()).filter(Boolean),production:parseProduction(qs("#formProduction").value),notes:qs("#formNotes").value.trim()};if(editingId)recipes=recipes.map(x=>x.id===id?recipe:x);else recipes.unshift(recipe);save();const existingPhotos=editingId&&!removeExistingPhotos?await getPhotos(id):[];const finalPhotos=[...existingPhotos,...pendingPhotos].slice(0,8);if(removeExistingPhotos)await deletePhotos(id);if(finalPhotos.length)await setPhotos(id,finalPhotos);renderAll();resetForm();await openRecipe(id);});
